@@ -8,7 +8,12 @@ import {ISpookyPool} from "./dependencies/interfaces/ISpookyPool.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-/// @custom:oz-upgrades-from contracts/bridgeAdapters/AcrossBridgeAdapter.sol:AcrossBridgeAdapter
+/**
+ * @title AcrossBridgeAdapter
+ * @notice Bridge adapter for Across V3 protocol
+ * @dev Implements bridge functionality for Across V3 by interacting with the SpookyPool contract.
+ * Handles token deposits and receives bridged tokens through the Across V3 message system.
+ */
 contract AcrossBridgeAdapter is BridgeAdapter, IAcrossV3Receiver {
     using Math for uint256;
 
@@ -17,6 +22,15 @@ contract AcrossBridgeAdapter is BridgeAdapter, IAcrossV3Receiver {
     address public spookyPool;
     uint256 public feeCapPct;
 
+    /**
+     * @notice Initializes the AcrossBridgeAdapter contract
+     * @dev Sets up the bridge adapter with default admin, governance, SpookyPool address, and fee cap.
+     * Can only be called once during contract deployment.
+     * @param _defaultAdmin The address that will have the default admin role
+     * @param _governance The address that will have the governance role
+     * @param _spookyPool The address of the Across V3 SpookyPool contract
+     * @param _feeCapPct The maximum fee percentage allowed in basis points (e.g., 100 = 1%)
+     */
     function initialize(
         address _defaultAdmin,
         address _governance,
@@ -28,14 +42,17 @@ contract AcrossBridgeAdapter is BridgeAdapter, IAcrossV3Receiver {
         _setFeeCapPct(_feeCapPct);
     }
 
+    /// @inheritdoc IAcrossV3Receiver
     function setSpookyPool(address _spookyPoolAddress) external onlyRole(GOVERNANCE_ROLE) {
         _setAcrossSpookyPool(_spookyPoolAddress);
     }
 
+    /// @inheritdoc IAcrossV3Receiver
     function setFeeCapPct(uint256 _feeCapPct) external onlyRole(GOVERNANCE_ROLE) {
         _setFeeCapPct(_feeCapPct);
     }
 
+    /// @inheritdoc IAcrossV3Receiver
     function handleV3AcrossMessage(address token, uint256 amount, address, bytes memory message) external {
         require(msg.sender == spookyPool, OnlySpookyPool(msg.sender, spookyPool));
         _finalizeBridge(abi.decode(message, (address)), token, amount);
