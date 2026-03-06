@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import {BridgeAdapter} from "@shift-defi/core/BridgeAdapter.sol";
 import {Errors} from "@shift-defi/core/libraries/helpers/Errors.sol";
+
 import {IAcrossV3Receiver} from "./dependencies/interfaces/IAcrossV3Receiver.sol";
 import {ISpookyPool} from "./dependencies/interfaces/ISpookyPool.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title AcrossBridgeAdapter
@@ -15,6 +18,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * Handles token deposits and receives bridged tokens through the Across V3 message system.
  */
 contract AcrossBridgeAdapter is BridgeAdapter, IAcrossV3Receiver {
+    using SafeERC20 for IERC20;
     using Math for uint256;
 
     uint256 public constant MAX_FEE_CAP_BPS = 10_000; // 100%
@@ -67,7 +71,7 @@ contract AcrossBridgeAdapter is BridgeAdapter, IAcrossV3Receiver {
 
         _validatePayload(instruction, acrossPayload);
 
-        IERC20(instruction.token).approve(spookyPool, instruction.amount);
+        IERC20(instruction.token).forceApprove(spookyPool, instruction.amount);
         uint256 minAmount = instruction.amount - acrossPayload.fee;
         bytes memory message = abi.encode(receiver);
         ISpookyPool(spookyPool).depositV3Now(
