@@ -69,7 +69,7 @@ contract AcrossBridgeAdapter is BridgeAdapter, IAcrossV3Receiver {
     ) internal override returns (uint256) {
         AcrossParams memory acrossPayload = abi.decode(instruction.payload, (AcrossParams));
 
-        _validatePayload(instruction, acrossPayload);
+        require(acrossPayload.fee * MAX_FEE_CAP_BPS <= feeCapPct * instruction.amount, FeeTooHigh(acrossPayload.fee));
 
         IERC20(instruction.token).forceApprove(spookyPool, instruction.amount);
         uint256 minAmount = instruction.amount - acrossPayload.fee;
@@ -88,14 +88,6 @@ contract AcrossBridgeAdapter is BridgeAdapter, IAcrossV3Receiver {
             message
         );
         return minAmount;
-    }
-
-    function _validatePayload(BridgeInstruction calldata instruction, AcrossParams memory acrossParams) internal view {
-        require(
-            acrossParams.fillDeadline >= block.timestamp,
-            DeadlineExceeded(uint32(block.timestamp), acrossParams.fillDeadline)
-        );
-        require(acrossParams.fee * MAX_FEE_CAP_BPS <= feeCapPct * instruction.amount, FeeTooHigh(acrossParams.fee));
     }
 
     function _setAcrossSpookyPool(address newSpookyPool) private {
