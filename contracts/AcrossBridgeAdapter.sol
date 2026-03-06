@@ -95,7 +95,7 @@ contract AcrossBridgeAdapter is BridgeAdapter, IAcrossV3Receiver {
             acrossParams.fillDeadline >= block.timestamp,
             DeadlineExceeded(uint32(block.timestamp), acrossParams.fillDeadline)
         );
-        require(acrossParams.fee * MAX_FEE_CAP_BPS < feeCapPct * instruction.amount, FeeTooHigh(acrossParams.fee));
+        require(acrossParams.fee * MAX_FEE_CAP_BPS <= feeCapPct * instruction.amount, FeeTooHigh(acrossParams.fee));
     }
 
     function _setAcrossSpookyPool(address newSpookyPool) private {
