@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import {BridgeAdapter} from "@shift-defi/core/BridgeAdapter.sol";
 import {Errors} from "@shift-defi/core/libraries/helpers/Errors.sol";
+
 import {IAcrossV3Receiver} from "./dependencies/interfaces/IAcrossV3Receiver.sol";
 import {ISpookyPool} from "./dependencies/interfaces/ISpookyPool.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title AcrossBridgeAdapter
@@ -15,6 +18,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * Handles token deposits and receives bridged tokens through the Across V3 message system.
  */
 contract AcrossBridgeAdapter is BridgeAdapter, IAcrossV3Receiver {
+    using SafeERC20 for IERC20;
     using Math for uint256;
 
     uint256 public constant MAX_FEE_CAP_BPS = 10_000; // 100%
@@ -65,9 +69,9 @@ contract AcrossBridgeAdapter is BridgeAdapter, IAcrossV3Receiver {
     ) internal override returns (uint256) {
         AcrossParams memory acrossPayload = abi.decode(instruction.payload, (AcrossParams));
 
-        _validatePayload(instruction, acrossPayload);
+        require(acrossPayload.fee * MAX_FEE_CAP_BPS <= feeCapPct * instruction.amount, FeeTooHigh(acrossPayload.fee));
 
-        IERC20(instruction.token).approve(spookyPool, instruction.amount);
+        IERC20(instruction.token).forceApprove(spookyPool, instruction.amount);
         uint256 minAmount = instruction.amount - acrossPayload.fee;
         bytes memory message = abi.encode(receiver);
         ISpookyPool(spookyPool).depositV3Now(
@@ -84,14 +88,6 @@ contract AcrossBridgeAdapter is BridgeAdapter, IAcrossV3Receiver {
             message
         );
         return minAmount;
-    }
-
-    function _validatePayload(BridgeInstruction calldata instruction, AcrossParams memory acrossParams) internal view {
-        require(
-            acrossParams.fillDeadline >= block.timestamp,
-            DeadlineExceeded(uint32(block.timestamp), acrossParams.fillDeadline)
-        );
-        require(acrossParams.fee * MAX_FEE_CAP_BPS < feeCapPct * instruction.amount, FeeTooHigh(acrossParams.fee));
     }
 
     function _setAcrossSpookyPool(address newSpookyPool) private {

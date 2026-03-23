@@ -14,7 +14,6 @@ pragma solidity ^0.8.28;
 interface IAcrossV3Receiver {
     struct AcrossParams {
         address exclusiveRelayer;
-        uint32 fillDeadline;
         uint32 exclusiveDeadline;
         uint256 fee;
     }
@@ -22,7 +21,6 @@ interface IAcrossV3Receiver {
     event SpookyPoolUpdated(address old, address new_);
     event FeeCapPctUpdated(uint256 old, uint256 new_);
 
-    error DeadlineExceeded(uint32 currentTimestamp, uint256 timestamp);
     error OnlySpookyPool(address addr, address spookyPool);
     error FeeTooHigh(uint256 fee);
     error InvalidFeeCapPct(uint256 feeCapPct);
