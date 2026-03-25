@@ -6,7 +6,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {BridgeAdapter} from "@shift-defi/core/BridgeAdapter.sol";
-import {Errors} from "@shift-defi/core/libraries/helpers/Errors.sol";
+import {Errors} from "@shift-defi/core/libraries/Errors.sol";
 
 import {IAcrossV3Receiver} from "./dependencies/interfaces/IAcrossV3Receiver.sol";
 import {ISpookyPool} from "./dependencies/interfaces/ISpookyPool.sol";
@@ -21,38 +21,44 @@ contract AcrossBridgeAdapter is BridgeAdapter, IAcrossV3Receiver {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
-    uint256 public constant MAX_FEE_CAP_BPS = 10_000; // 100%
+    uint256 public constant MAX_FEE_CAP_BPS = 1e18; // 100%
 
     address public spookyPool;
     uint256 public feeCapPct;
 
     /**
-     * @notice Initializes the AcrossBridgeAdapter contract
-     * @dev Sets up the bridge adapter with default admin, governance, SpookyPool address, and fee cap.
-     * Can only be called once during contract deployment.
-     * @param _defaultAdmin The address that will have the default admin role
-     * @param _governance The address that will have the governance role
-     * @param _spookyPool The address of the Across V3 SpookyPool contract
-     * @param _feeCapPct The maximum fee percentage allowed in basis points (e.g., 100 = 1%)
+     * @notice Initializes the AcrossBridgeAdapter contract.
+     * @dev Sets up the bridge adapter contract with the specified admin roles, configuration parameters, SpookyPool address, and fee cap.
+     * This function can only be called once during contract deployment (initializer).
+     * @param _defaultAdmin The address assigned the default admin role responsible for overall contract management.
+     * @param _bridgeAdapterManager The address assigned the bridge adapter manager role, authorized to update bridge adapter settings.
+     * @param _cacheManager The address assigned the cache manager role, authorized to manage cache-related logic.
+     * @param _slippageCapPct The maximum allowed slippage.
+     * @param _maxCacheSize The maximum amount of bridge instruction stored in cache.
+     * @param _spookyPool The address of the Across V3 SpookyPool contract, which facilitates cross-chain transfers.
+     * @param _feeCapPct The maximum fee, allowed for bridging operations.
      */
     function initialize(
         address _defaultAdmin,
-        address _governance,
+        address _bridgeAdapterManager,
+        address _cacheManager,
+        uint256 _slippageCapPct,
+        uint256 _maxCacheSize,
         address _spookyPool,
         uint256 _feeCapPct
     ) external initializer {
-        __BridgeAdapter_init(_defaultAdmin, _governance);
+        __BridgeAdapter_init(_defaultAdmin, _bridgeAdapterManager, _cacheManager, _slippageCapPct, _maxCacheSize);
         _setAcrossSpookyPool(_spookyPool);
         _setFeeCapPct(_feeCapPct);
     }
 
     /// @inheritdoc IAcrossV3Receiver
-    function setSpookyPool(address _spookyPoolAddress) external onlyRole(GOVERNANCE_ROLE) {
+    function setSpookyPool(address _spookyPoolAddress) external onlyRole(BRIDGE_ADAPTER_MANAGER_ROLE) {
         _setAcrossSpookyPool(_spookyPoolAddress);
     }
 
     /// @inheritdoc IAcrossV3Receiver
-    function setFeeCapPct(uint256 _feeCapPct) external onlyRole(GOVERNANCE_ROLE) {
+    function setFeeCapPct(uint256 _feeCapPct) external onlyRole(BRIDGE_ADAPTER_MANAGER_ROLE) {
         _setFeeCapPct(_feeCapPct);
     }
 
