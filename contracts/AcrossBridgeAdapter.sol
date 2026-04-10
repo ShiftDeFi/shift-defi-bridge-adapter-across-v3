@@ -26,6 +26,10 @@ contract AcrossBridgeAdapter is BridgeAdapter, IAcrossV3Receiver {
     address public spookyPool;
     uint256 public feeCapPct;
 
+    constructor() {
+        _disableInitializers();
+    }
+
     /**
      * @notice Initializes the AcrossBridgeAdapter contract.
      * @dev Sets up the bridge adapter contract with the specified admin roles, configuration parameters, SpookyPool address, and fee cap.
